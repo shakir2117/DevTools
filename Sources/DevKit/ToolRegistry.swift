@@ -3,6 +3,7 @@ import SwiftUI
 enum ToolRegistry {
     static let all: [any Tool] = [
         JSONFormatterTool(),
+        URLParserTool(),
         XMLFormatterTool(),
         YAMLFormatterTool(),
         Base64Tool(),
@@ -23,6 +24,13 @@ enum ToolRegistry {
         IDGeneratorTool(),
         PasswordTool(),
         UserAgentTool(),
+        RegexTool(),
+        DiffTool(),
+        JSONPathTool(),
+        CSVViewerTool(),
+        MarkdownTool(),
+        HTMLPreviewTool(),
+        CronTool(),
     ]
 
     static func tool(id: String) -> (any Tool)? {

@@ -70,6 +70,12 @@ public enum SelfTest {
         UnitConvert.runChecks(expect)
         FileSizeCalc.runChecks(expect)
         DateConvert.runChecks(expect)
+        RegexPlayground.runChecks(expect)
+        TextDiff.runChecks(expect)
+        JSONPath.runChecks(expect)
+        URLParserChecks.runChecks(expect)
+        Cron.runChecks(expect)
+        MarkdownRender.runChecks(expect)
 
         if failures.isEmpty {
             print("selftest ok (\(checks) checks)")

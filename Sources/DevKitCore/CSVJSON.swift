@@ -80,7 +80,7 @@ public enum CSVJSON {
         expect("json csv bad", jsonToCSV("{", delimiter: ",", header: true).issue != nil)
     }
 
-    static func parse(_ text: String, delimiter: Character) -> [[String]] {
+    public static func parse(_ text: String, delimiter: Character) -> [[String]] {
         var rows: [[String]] = []
         var row: [String] = []
         var field = ""
