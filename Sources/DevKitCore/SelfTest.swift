@@ -54,6 +54,7 @@ public enum SelfTest {
 
         HTMLEntities.runChecks(expect)
         Hashing.runChecks(expect)
+        Bcrypt.runChecks(expect)
         IDGenerator.runChecks(expect)
         NumberBase.runChecks(expect)
         PasswordGenerator.runChecks(expect)

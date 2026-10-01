@@ -5,7 +5,7 @@ import DevKitCore
 struct HashTool: Tool {
     let id = "hash"
     let name = "Hash"
-    let summary = "MD5, SHA, and HMAC for text or a file"
+    let summary = "MD5, SHA, HMAC, and bcrypt for text or a file"
     let symbol = "number.square"
     let category = ToolCategory.generators
     func makeView() -> AnyView { AnyView(HashToolView()) }
@@ -13,38 +13,58 @@ struct HashTool: Tool {
 
 struct HashToolView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var algorithm: Hashing.Algorithm = .sha256
+    @State private var choice = "sha256"
     @State private var hmac = false
     @State private var key = ""
+    @State private var cost = 10
+    @State private var verifyHash = ""
     @State private var fileNote = ""
     @State private var pushed = ""
     @State private var restored = false
 
+    private let choices = ["md5", "sha1", "sha256", "sha384", "sha512", "bcrypt"]
+
     var body: some View {
-        let chosenAlgorithm = algorithm
+        let chosen = choice
         let chosenHMAC = hmac
         let chosenKey = key
+        let chosenCost = cost
+        let chosenVerify = verifyHash
         TextToolView(
             toolID: "hash",
             sample: "abc",
-            runToken: "\(chosenAlgorithm.rawValue)|\(chosenHMAC)|\(chosenKey)",
+            runToken: "\(chosen)|\(chosenHMAC)|\(chosenKey)|\(chosenCost)|\(chosenVerify)",
             canSwap: false,
             pushedOutput: pushed,
             transform: { text in
-                Hashing.hash(text: text, algorithm: chosenAlgorithm, hmacKey: chosenHMAC ? chosenKey : nil)
+                if chosen == "bcrypt" {
+                    if !chosenVerify.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        return Bcrypt.verify(password: text, hash: chosenVerify)
+                    }
+                    return Bcrypt.hash(password: text, cost: chosenCost)
+                }
+                let algorithm = Hashing.Algorithm(rawValue: chosen) ?? .sha256
+                return Hashing.hash(text: text, algorithm: algorithm, hmacKey: chosenHMAC ? chosenKey : nil)
             }
         ) {
             HStack(spacing: 12) {
-                Picker("Algorithm", selection: $algorithm) {
-                    ForEach(Hashing.Algorithm.allCases, id: \.self) { item in
-                        Text(item.title).tag(item)
+                Picker("Algorithm", selection: $choice) {
+                    ForEach(choices, id: \.self) { item in
+                        Text(item == "bcrypt" ? "bcrypt" : (Hashing.Algorithm(rawValue: item)?.title ?? item)).tag(item)
                     }
                 }
                 .frame(maxWidth: 160)
-                Toggle("HMAC", isOn: $hmac)
-                SecureField("Key", text: $key)
-                    .frame(maxWidth: 220)
-                    .disabled(!hmac)
+                if choice == "bcrypt" {
+                    Stepper("Cost \(cost)", value: $cost, in: 4...14)
+                    TextField("Hash to verify", text: $verifyHash)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 280)
+                } else {
+                    Toggle("HMAC", isOn: $hmac)
+                    SecureField("Key", text: $key)
+                        .frame(maxWidth: 220)
+                        .disabled(!hmac)
+                }
                 Button("Hash File…") { hashFile() }
                 if !fileNote.isEmpty {
                     Text(fileNote)
@@ -56,9 +76,11 @@ struct HashToolView: View {
             }
         }
         .onAppear(perform: restore)
-        .onChange(of: algorithm) { _, _ in persist() }
+        .onChange(of: choice) { _, _ in persist() }
         .onChange(of: hmac) { _, _ in persist() }
         .onChange(of: key) { _, _ in persist() }
+        .onChange(of: cost) { _, _ in persist() }
+        .onChange(of: verifyHash) { _, _ in persist() }
     }
 
     private func hashFile() {
@@ -67,7 +89,11 @@ struct HashToolView: View {
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = [.data]
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        let algorithm = algorithm
+        if choice == "bcrypt" {
+            fileNote = "bcrypt hashes a password, not a file."
+            return
+        }
+        let algorithm = Hashing.Algorithm(rawValue: choice) ?? .sha256
         let key = hmac ? key : nil
         fileNote = "Hashing \(url.lastPathComponent)…"
         DispatchQueue.global(qos: .userInitiated).async {
@@ -87,16 +113,20 @@ struct HashToolView: View {
         guard !restored else { return }
         restored = true
         let object = model.loadOptionsObject(for: "hash")
-        if let value = object["algorithm"] as? String, let parsed = Hashing.Algorithm(rawValue: value) { algorithm = parsed }
+        if let value = object["algorithm"] as? String, choices.contains(value) { choice = value }
         hmac = object["hmac"] as? Bool ?? false
         key = object["key"] as? String ?? ""
+        if let value = object["cost"] as? Int { cost = min(14, max(4, value)) }
+        verifyHash = object["verify"] as? String ?? ""
     }
 
     private func persist() {
         model.saveOptionsObject([
-            "algorithm": algorithm.rawValue,
+            "algorithm": choice,
             "hmac": hmac,
             "key": key,
+            "cost": cost,
+            "verify": verifyHash,
         ], for: "hash")
     }
 }
