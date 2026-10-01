@@ -1,0 +1,18 @@
+---
+description: Mandate security hardening and block code-level vulnerability execution
+alwaysApply: true
+---
+# Security mandate
+
+Treat every tool input as untrusted. A feature is not done until hostile input is rejected and covered by `--selftest` when the check is pure logic.
+
+- Never run a shell. Launch tools with `Process` and an argument array. Do not build command strings.
+- Reject host and query values that are empty, longer than 253 characters, or start with `-` or `@`. Allow only letters, digits, `.`, `-`, and `:`.
+- Allow `dig` record types only from the fixed list. Pass the host and type as separate arguments.
+- HTTP and redirects: `http` and `https` only. Methods: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS. Header names and values, and multipart names, must not contain CR, LF, NUL, or a colon in the name.
+- WebSocket URLs: `ws` and `wss` only, with a non-empty host. Skip headers that contain a line break or colon.
+- IP lookup provider URLs must be `https`.
+- Read cookies from the ephemeral session store, never `HTTPCookieStorage.shared`.
+- Web previews: JavaScript cannot open windows. Cancel `file:` and `javascript:` navigations and activated links. Markdown pages ship a Content-Security-Policy of `default-src 'none'`.
+- Do not force-unwrap, interpolate, or eval external input. Cap input size before parsing, previewing, or hashing.
+- Add an `expect` that the hostile case fails: a `file:` URL, a header line break, and a host that starts with `-`.

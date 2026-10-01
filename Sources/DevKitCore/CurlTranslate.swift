@@ -71,6 +71,79 @@ public enum CurlTranslate {
         return .success(command)
     }
 
+    public static func request(_ text: String) -> Result<HTTPSpec, ToolIssue> {
+        switch parse(text) {
+        case let .failure(issue):
+            return .failure(issue)
+        case let .success(command):
+            return spec(from: command)
+        }
+    }
+
+    public static func spec(from command: Command) -> Result<HTTPSpec, ToolIssue> {
+        let allowed = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+        guard allowed.contains(command.method.uppercased()) else {
+            return .failure(ToolIssue(message: "That HTTP method is not allowed."))
+        }
+        guard var components = URLComponents(string: command.url) else {
+            return .failure(ToolIssue(message: "That URL cannot be read."))
+        }
+        let scheme = components.scheme?.lowercased()
+        guard scheme == "http" || scheme == "https", let host = components.host, !host.isEmpty, !host.hasPrefix("-"), !host.hasPrefix("@") else {
+            return .failure(ToolIssue(message: "Only http and https URLs are allowed."))
+        }
+        var auth = "none"
+        var authValue = ""
+        var authSecret = ""
+        if !command.user.isEmpty {
+            let parts = command.user.split(separator: ":", maxSplits: 1).map(String.init)
+            auth = "basic"
+            authValue = parts.first ?? ""
+            authSecret = parts.count > 1 ? parts[1] : ""
+        } else if components.user != nil || components.password != nil {
+            auth = "basic"
+            authValue = components.user?.removingPercentEncoding ?? ""
+            authSecret = components.password?.removingPercentEncoding ?? ""
+            components.user = nil
+            components.password = nil
+        }
+        let query = (components.queryItems ?? []).filter { !$0.name.isEmpty }.map { HTTPField(name: $0.name, value: $0.value ?? "") }
+        components.query = nil
+        components.queryItems = nil
+        guard let url = components.url else { return .failure(ToolIssue(message: "That URL cannot be read.")) }
+        var headers: [HTTPField] = []
+        for raw in command.headers {
+            let pair = splitHeader(raw)
+            if pair.0.isEmpty || !fieldText(pair.0) || !fieldText(pair.1) || pair.0.contains(":") {
+                return .failure(ToolIssue(message: "A header contains a line break or colon."))
+            }
+            if pair.0.caseInsensitiveCompare("Authorization") == .orderedSame, pair.1.hasPrefix("Bearer ") {
+                auth = "bearer"
+                authValue = String(pair.1.dropFirst("Bearer ".count))
+                authSecret = ""
+                continue
+            }
+            headers.append(HTTPField(name: pair.0, value: pair.1))
+        }
+        if command.body.utf8.count > 200_000 { return .failure(ToolIssue(message: "The body is larger than 200 KB.")) }
+        return .success(HTTPSpec(
+            method: command.method.uppercased(),
+            url: url.absoluteString,
+            query: query,
+            headers: headers,
+            bodyKind: command.body.isEmpty ? "none" : "raw",
+            body: command.body,
+            auth: auth,
+            authValue: authValue,
+            authSecret: authSecret,
+            followRedirects: command.follow
+        ))
+    }
+
+    private static func fieldText(_ text: String) -> Bool {
+        !text.contains("\n") && !text.contains("\r") && !text.contains("\0")
+    }
+
     public static func swiftCode(_ command: Command) -> String {
         """
         guard let url = URL(string: \(literal(command.url))) else { throw URLError(.badURL) }
@@ -164,6 +237,17 @@ public enum CurlTranslate {
         expect("curl node", render(source, language: "node").output.contains("node-fetch"))
         expect("curl empty", render("  ", language: "swift").issue != nil)
         expect("curl no url", render("curl -X GET", language: "swift").issue != nil)
+        if case let .success(spec) = request("curl -X PUT 'https://example.com/items?id=7' -u ada:secret -H 'Accept: application/json' -d '{\"n\":1}'") {
+            expect("curl parts", spec.method == "PUT" && spec.url == "https://example.com/items" && spec.query == [HTTPField(name: "id", value: "7")])
+            expect("curl auth", spec.auth == "basic" && spec.authValue == "ada" && spec.body == "{\"n\":1}")
+            expect("curl header", spec.headers == [HTTPField(name: "Accept", value: "application/json")])
+        } else {
+            expect("curl parts", false)
+            expect("curl auth", false)
+            expect("curl header", false)
+        }
+        if case .failure = request("curl file:///etc/passwd") { expect("curl file", true) } else { expect("curl file", false) }
+        if case .failure = request("curl https://example.com -H \"X-A: a\nb\"") { expect("curl header break", true) } else { expect("curl header break", false) }
     }
 
     private static func tokenize(_ text: String) -> [String] {

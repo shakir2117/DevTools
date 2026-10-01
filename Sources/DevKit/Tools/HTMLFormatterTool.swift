@@ -5,7 +5,7 @@ struct HTMLMarkupTool: Tool {
     let id = "html-formatter"
     let name = "HTML Formatter"
     let summary = "Beautify and minify HTML"
-    let symbol = "chevron.left.forwardslash.chevron.right"
+    let symbol = "doc.text"
     let category = ToolCategory.formatters
     func makeView() -> AnyView { AnyView(HTMLMarkupToolView()) }
 }

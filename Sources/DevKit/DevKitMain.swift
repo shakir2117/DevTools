@@ -18,7 +18,7 @@ struct DevKitApp: App {
     @StateObject private var model = AppModel()
 
     var body: some Scene {
-        WindowGroup {
+        Window("DevKit", id: "main") {
             ContentView()
                 .environmentObject(model)
         }
@@ -29,7 +29,31 @@ struct DevKitApp: App {
                     model.paletteOpen = true
                 }
                 .keyboardShortcut("k", modifiers: .command)
+                Button("All Tools") {
+                    model.select(nil)
+                }
+                .keyboardShortcut("[", modifiers: .command)
+                .disabled(model.selectedToolID == nil)
+                Button("Toggle Favorite") {
+                    if let id = model.selectedToolID { model.toggleFavorite(id) }
+                }
+                .keyboardShortcut("d", modifiers: .command)
+                .disabled(model.selectedToolID == nil)
+                Button("Copy Output") {
+                    model.requestCopyOutput()
+                }
+                .keyboardShortcut("c", modifiers: [.command, .shift])
             }
         }
+
+        MenuBarExtra {
+            MenuBarPanel()
+                .environmentObject(model)
+        } label: {
+            Image(nsImage: MenuBarMark.image)
+                .renderingMode(.template)
+                .accessibilityLabel("DevKit")
+        }
+        .menuBarExtraStyle(.window)
     }
 }

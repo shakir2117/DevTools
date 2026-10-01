@@ -47,6 +47,7 @@ struct URLParserToolView: View {
         }
         .padding(12)
         .onAppear { applyRaw() }
+        .onSample { raw = "https://ada:secret@example.com:8443/a/b?x=1&y=hello#top" }
         .onChange(of: raw) { _, _ in
             guard !writing else { return }
             applyRaw()

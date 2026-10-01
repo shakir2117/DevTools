@@ -1,7 +1,28 @@
+# Swift Package Manager
 .build/
 .swiftpm/
-DevKit.app
+Packages/
+
+# Built app
+DevKit.app/
+*.dSYM
+
+# Xcode
+DerivedData/
 *.xcuserdata
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Local caches
 node_modules/
 .prettier-vendor/

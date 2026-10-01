@@ -23,10 +23,13 @@ struct TLSToolView: View {
                 TextField("Port", text: $port).frame(width: 80)
                 Button(busy ? "Connecting…" : "Inspect") { inspect() }.disabled(busy)
             }
-            TextEditor(text: .constant(output))
-                .font(.system(.body, design: .monospaced))
+            CodePane(text: .constant(output), editable: false)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .copyOutput { output }
+        .onSample { host = "example.com"; port = "443" }
     }
 
     private func inspect() {

@@ -7,59 +7,39 @@ struct SidebarView: View {
         ToolRegistry.matching(model.search)
     }
 
+    private var selection: Binding<String> {
+        Binding(
+            get: { model.selectedToolID ?? "" },
+            set: { model.select($0.isEmpty ? nil : $0) }
+        )
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search tools", text: $model.search)
-                    .textFieldStyle(.plain)
-                if !model.search.isEmpty {
-                    Button {
-                        model.search = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+        List(selection: selection) {
+            sidebarLabel("All Tools", symbol: "square.grid.2x2", tint: .blue)
+                .tag("")
+
+            if !favoriteTools.isEmpty {
+                Section("Favorites") {
+                    ForEach(favoriteTools, id: \.id) { tool in
+                        toolRow(tool)
                     }
-                    .buttonStyle(.borderless)
                 }
             }
-            .padding(8)
-            .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 8))
-            .padding(.horizontal, 10)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
 
-            List {
-                Button {
-                    model.select(nil)
-                } label: {
-                    Label("All Tools", systemImage: "square.grid.2x2")
-                }
-                .buttonStyle(.plain)
-                .listRowBackground(model.selectedToolID == nil ? Color.accentColor.opacity(0.18) : Color.clear)
-
-                if !model.favorites.isEmpty {
-                    Section("Favorites") {
-                        ForEach(favoriteTools, id: \.id) { tool in
+            ForEach(ToolCategory.allCases) { category in
+                let group = tools.filter { $0.category == category }
+                if !group.isEmpty {
+                    Section(category.title) {
+                        ForEach(group, id: \.id) { tool in
                             toolRow(tool)
                         }
                     }
                 }
-
-                ForEach(ToolCategory.allCases) { category in
-                    let group = tools.filter { $0.category == category }
-                    if !group.isEmpty {
-                        Section(category.title) {
-                            ForEach(group, id: \.id) { tool in
-                                toolRow(tool)
-                            }
-                        }
-                    }
-                }
             }
-            .listStyle(.sidebar)
         }
+        .listStyle(.sidebar)
+        .searchable(text: $model.search, placement: .sidebar, prompt: "Search")
         .navigationTitle("DevKit")
     }
 
@@ -70,17 +50,21 @@ struct SidebarView: View {
     }
 
     private func toolRow(_ tool: any Tool) -> some View {
-        Button {
-            model.select(tool.id)
-        } label: {
-            Label(tool.name, systemImage: tool.symbol)
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button(model.isFavorite(tool.id) ? "Unfavorite" : "Favorite") {
-                model.toggleFavorite(tool.id)
+        sidebarLabel(tool.name, symbol: tool.symbol, tint: tool.category.tint)
+            .tag(tool.id)
+            .contextMenu {
+                Button(model.isFavorite(tool.id) ? "Unfavorite" : "Favorite") {
+                    model.toggleFavorite(tool.id)
+                }
             }
+    }
+
+    private func sidebarLabel(_ title: String, symbol: String, tint: Color) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: symbol)
+                .foregroundStyle(tint)
         }
-        .listRowBackground(model.selectedToolID == tool.id ? Color.accentColor.opacity(0.18) : Color.clear)
     }
 }

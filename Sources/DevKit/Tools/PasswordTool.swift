@@ -81,6 +81,7 @@ struct PasswordToolView: View {
             }
         }
         .onAppear(perform: restore)
+        .onSample { nonce += 1 }
         .onChange(of: passphrase) { _, _ in persist() }
         .onChange(of: length) { _, _ in persist() }
         .onChange(of: wordCount) { _, _ in persist() }

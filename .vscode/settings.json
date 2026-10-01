@@ -1,0 +1,9 @@
+{
+  "git.autoRepositoryDetection": false,
+  "git.repositoryScanMaxDepth": 0,
+  "git.detectSubmodules": false,
+  "git.ignoredRepositories": [
+    ".build"
+  ],
+  "gitlens.advanced.repositorySearchDepth": 0
+}

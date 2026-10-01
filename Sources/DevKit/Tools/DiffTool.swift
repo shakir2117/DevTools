@@ -43,8 +43,8 @@ struct DiffToolView: View {
                 .frame(maxWidth: 220)
             }
             HStack {
-                TextEditor(text: $left).font(.system(.body, design: .monospaced))
-                TextEditor(text: $right).font(.system(.body, design: .monospaced))
+                CodeEditor(text: $left)
+                CodeEditor(text: $right)
             }
             .frame(minHeight: 140)
             if sideBySide {
@@ -57,12 +57,15 @@ struct DiffToolView: View {
                     .foregroundStyle(color(row.kind))
                 }
             } else {
-                TextEditor(text: .constant(unified))
-                    .font(.system(.body, design: .monospaced))
+                CodeEditor(text: .constant(unified), editable: false)
             }
         }
         .padding(12)
         .onAppear(perform: restore)
+        .onSample {
+            left = "a\nb\nc"
+            right = "a\nx\nc"
+        }
         .onChange(of: left) { _, _ in schedule() }
         .onChange(of: right) { _, _ in schedule() }
         .onChange(of: granularity) { _, _ in schedule() }

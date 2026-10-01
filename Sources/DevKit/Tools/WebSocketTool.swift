@@ -44,11 +44,18 @@ struct WebSocketToolView: View {
                 Toggle("Binary", isOn: $binary)
                 Button("Send") { client.send(message, binary: binary) }.disabled(!client.connected)
             }
-            TextEditor(text: .constant(client.log))
-                .font(.system(.body, design: .monospaced))
+            CodePane(text: Binding(get: { client.log }, set: { _ in }), editable: false)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .copyOutput { client.log }
         .onDisappear { client.disconnect() }
+        .onSample {
+            url = "wss://echo.websocket.events"
+            message = "hello"
+            binary = false
+        }
     }
 }
 
@@ -63,7 +70,9 @@ final class WebSocketClient: ObservableObject {
     private var generation = 0
 
     func connect(url: String, headers: [(String, String)], reconnect: Bool) {
-        guard let endpoint = URL(string: url), endpoint.scheme == "ws" || endpoint.scheme == "wss" else {
+        guard let endpoint = URL(string: url),
+              endpoint.scheme == "ws" || endpoint.scheme == "wss",
+              let host = endpoint.host, !host.isEmpty else {
             append("Enter a ws:// or wss:// URL.")
             return
         }
@@ -74,6 +83,11 @@ final class WebSocketClient: ObservableObject {
         let current = generation
         var request = URLRequest(url: endpoint)
         for header in headers where !header.0.isEmpty {
+            if header.0.contains("\n") || header.0.contains("\r") || header.0.contains(":")
+                || header.1.contains("\n") || header.1.contains("\r") {
+                append("Skipped a header that contained a line break.")
+                continue
+            }
             request.setValue(header.1, forHTTPHeaderField: header.0)
         }
         let session = URLSession(configuration: .default)

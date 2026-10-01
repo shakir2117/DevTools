@@ -5,7 +5,7 @@ struct CSVJSONTool: Tool {
     let id = "csv-json"
     let name = "CSV ↔ JSON"
     let summary = "Convert CSV and JSON, including quoted fields"
-    let symbol = "tablecells"
+    let symbol = "arrow.triangle.2.circlepath"
     let category = ToolCategory.converters
     func makeView() -> AnyView { AnyView(CSVJSONToolView()) }
 }

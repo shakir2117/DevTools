@@ -83,12 +83,8 @@ struct JWTToolView: View {
                     Text("Result")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    Text(output.isEmpty ? " " : output)
-                        .font(.system(.body, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .padding(8)
-                        .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+                    CodePane(text: .constant(output), editable: false)
+                        .frame(minHeight: 120)
                 }
                 .padding(12)
             }
@@ -106,6 +102,12 @@ struct JWTToolView: View {
             }
         }
         .onAppear(perform: restore)
+        .onSample {
+            mode = .sign
+            header = #"{"alg":"HS256","typ":"JWT"}"#
+            payload = #"{"sub":"devkit"}"#
+            secret = "secret"
+        }
         .onChange(of: token) { _, _ in schedule(); persist() }
         .onChange(of: header) { _, _ in schedule(); persist() }
         .onChange(of: payload) { _, _ in schedule(); persist() }
@@ -113,6 +115,7 @@ struct JWTToolView: View {
         .onChange(of: pem) { _, _ in schedule(); persist() }
         .onChange(of: mode) { _, _ in schedule(); persist() }
         .onChange(of: algorithm) { _, _ in schedule(); persist() }
+        .copyOutput { output }
     }
 
     private func field(_ title: String, text: Binding<String>) -> some View {
@@ -120,12 +123,9 @@ struct JWTToolView: View {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-            TextEditor(text: text)
-                .font(.system(.body, design: .monospaced))
+            CodeEditor(text: text, wrap: true)
                 .frame(minHeight: title == "Token" || title == "PEM public key" ? 88 : 64)
-                .padding(6)
-                .scrollContentBackground(.hidden)
-                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.08)))
         }
     }

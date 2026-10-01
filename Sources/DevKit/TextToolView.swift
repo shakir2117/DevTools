@@ -78,15 +78,23 @@ struct TextToolView<Options: View>: View {
         VStack(spacing: 0) {
             toolbar
             options()
-                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
                 .padding(.bottom, 8)
-            HSplitView {
-                pane(title: "Input", text: inputBinding, editable: largeNote == nil, drop: true)
-                pane(title: "Output", text: outputBinding, editable: output.utf8.count <= 400_000, drop: false)
+            FittedSplit {
+                pane(title: "Input", hint: ToolGuide.note(for: toolID).input, text: inputBinding, editable: largeNote == nil, drop: true, errorLine: largeNote == nil ? issue?.line : nil)
+            } right: {
+                pane(title: "Output", hint: ToolGuide.note(for: toolID).output, text: outputBinding, editable: false, drop: false, errorLine: nil)
             }
             statusBar
         }
         .onAppear(perform: restore)
+        .onSample {
+            pinOutput = false
+            largePayload = nil
+            largeNote = nil
+            input = sample
+        }
         .onChange(of: input) { _, newValue in
             pinOutput = false
             guard largePayload == nil else { return }
@@ -113,6 +121,10 @@ struct TextToolView<Options: View>: View {
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
             loadDrop(providers)
         }
+        .onChange(of: model.copyRequest) { _, value in
+            guard value > 0 else { return }
+            copy()
+        }
     }
 
     private var inputBinding: Binding<String> {
@@ -131,21 +143,21 @@ struct TextToolView<Options: View>: View {
     }
 
     private var toolbar: some View {
-        HStack(spacing: 8) {
-            toolButton("Paste", "doc.on.clipboard") { paste() }
-            toolButton("Copy", "doc.on.doc") { copy() }
-            toolButton("Clear", "trash") { clear() }
+        LiveGlass(cornerRadius: 14) {
+        FlowRow(spacing: 8, lineSpacing: 8) {
+            GlassIconButton(title: "Paste", symbol: "doc.on.clipboard", action: paste)
+            GlassIconButton(title: "Copy", symbol: "doc.on.doc", action: copy)
+            GlassIconButton(title: "Clear", symbol: "trash", action: clear)
             if canSwap {
-                toolButton("Swap", "arrow.left.arrow.right") { swap() }
+                GlassIconButton(title: "Swap", symbol: "arrow.left.arrow.right", action: swap)
             }
-            toolButton("Sample", "text.badge.plus") {
+            GlassIconButton(title: "Sample", symbol: "text.badge.plus") {
                 largePayload = nil
                 largeNote = nil
                 input = sample
             }
-            toolButton("Open", "folder") { openFile() }
-            toolButton("Save", "square.and.arrow.down") { saveFile() }
-            Spacer()
+            GlassIconButton(title: "Open", symbol: "folder", action: openFile)
+            GlassIconButton(title: "Save", symbol: "square.and.arrow.down", action: saveFile)
             if running {
                 ProgressView()
                     .controlSize(.small)
@@ -155,37 +167,35 @@ struct TextToolView<Options: View>: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-    }
-
-    private func toolButton(_ title: String, _ symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: symbol)
         }
-        .labelStyle(.iconOnly)
-        .help(title)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 
-    private func pane(title: String, text: Binding<String>, editable: Bool, drop: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            TextEditor(text: text)
-                .font(.system(.body, design: .monospaced))
-                .scrollContentBackground(.hidden)
-                .padding(8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(nsColor: .textBackgroundColor))
-                )
+    private func pane(title: String, hint: String, text: Binding<String>, editable: Bool, drop: Bool, errorLine: Int?) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(hint)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            CodePane(text: text, editable: editable, errorLine: errorLine)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(drop && dropTargeted ? Color.accentColor : Color.primary.opacity(0.08), lineWidth: drop && dropTargeted ? 2 : 1)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .strokeBorder(drop && dropTargeted ? Color.accentColor : Color.primary.opacity(0.12), lineWidth: drop && dropTargeted ? 2 : 1)
                 )
-                .disabled(!editable)
         }
         .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .clipped()
     }
 
     @ViewBuilder
@@ -242,8 +252,13 @@ struct TextToolView<Options: View>: View {
     }
 
     private func copy() {
+        guard !output.isEmpty else {
+            model.flash("Nothing to copy")
+            return
+        }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(output, forType: .string)
+        model.flash("Copied")
     }
 
     private func clear() {
@@ -281,7 +296,9 @@ struct TextToolView<Options: View>: View {
         panel.nameFieldStringValue = "output.txt"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            try output.data(using: .utf8)?.write(to: url)
+            guard let data = output.data(using: .utf8) else { return }
+            try data.write(to: url)
+            model.flash("Saved")
         } catch {
             issue = ToolIssue(message: error.localizedDescription)
         }

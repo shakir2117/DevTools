@@ -85,6 +85,11 @@ struct RegexToolView: View {
             dotLines = object["dotLines"] as? Bool ?? false
             evaluate()
         }
+        .onSample {
+            pattern = #"(\w+)@(\w+)"#
+            text = "a@b and c@d"
+            template = "[$1]"
+        }
         .onChange(of: pattern) { _, _ in schedule() }
         .onChange(of: text) { _, _ in schedule() }
         .onChange(of: template) { _, _ in schedule() }

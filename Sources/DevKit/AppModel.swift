@@ -12,6 +12,9 @@ final class AppModel: ObservableObject {
     @Published var recent: [String] = []
     @Published var search = ""
     @Published var paletteOpen = false
+    @Published var copyRequest = 0
+    @Published var sampleRequest = 0
+    @Published var notice: String?
     @Published private var blobs: [String: ToolBlob] = [:]
 
     private let defaults = UserDefaults.standard
@@ -19,6 +22,7 @@ final class AppModel: ObservableObject {
     private let favoritesKey = "devkit.favorites"
     private let recentKey = "devkit.recent"
     private let stateKey = "devkit.toolState"
+    private var noticeTick = 0
 
     init() {
         selectedToolID = defaults.string(forKey: lastKey)
@@ -28,6 +32,10 @@ final class AppModel: ObservableObject {
            let decoded = try? JSONDecoder().decode([String: ToolBlob].self, from: data) {
             blobs = decoded
         }
+    }
+
+    func requestSample() {
+        sampleRequest += 1
     }
 
     func select(_ id: String?) {
@@ -54,6 +62,20 @@ final class AppModel: ObservableObject {
             favorites.append(id)
         }
         defaults.set(favorites, forKey: favoritesKey)
+    }
+
+    func requestCopyOutput() {
+        copyRequest += 1
+    }
+
+    func flash(_ message: String) {
+        notice = message
+        noticeTick += 1
+        let tick = noticeTick
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { [weak self] in
+            guard let self, self.noticeTick == tick else { return }
+            self.notice = nil
+        }
     }
 
     func blob(for id: String) -> ToolBlob {
@@ -136,5 +158,46 @@ enum Fuzzy {
             }
         }
         return nil
+    }
+}
+
+struct OutputCopy: ViewModifier {
+    @EnvironmentObject private var model: AppModel
+    var text: () -> String
+
+    func body(content: Content) -> some View {
+        content.onChange(of: model.copyRequest) { _, value in
+            guard value > 0 else { return }
+            let valueText = text()
+            guard !valueText.isEmpty else {
+                model.flash("Nothing to copy")
+                return
+            }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(valueText, forType: .string)
+            model.flash("Copied")
+        }
+    }
+}
+
+struct SampleAction: ViewModifier {
+    @EnvironmentObject private var model: AppModel
+    var action: () -> Void
+
+    func body(content: Content) -> some View {
+        content.onChange(of: model.sampleRequest) { _, value in
+            guard value > 0 else { return }
+            action()
+        }
+    }
+}
+
+extension View {
+    func copyOutput(_ text: @escaping () -> String) -> some View {
+        modifier(OutputCopy(text: text))
+    }
+
+    func onSample(_ action: @escaping () -> Void) -> some View {
+        modifier(SampleAction(action: action))
     }
 }

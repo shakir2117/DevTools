@@ -5,7 +5,7 @@ struct IDGeneratorTool: Tool {
     let id = "id-generator"
     let name = "ID Generator"
     let summary = "UUID v4, UUID v7, ULID, and NanoID"
-    let symbol = "tag"
+    let symbol = "barcode"
     let category = ToolCategory.generators
     func makeView() -> AnyView { AnyView(IDGeneratorToolView()) }
 }
@@ -63,6 +63,7 @@ struct IDGeneratorToolView: View {
             }
         }
         .onAppear(perform: restore)
+        .onSample { nonce += 1 }
         .onChange(of: kind) { _, _ in persist() }
         .onChange(of: count) { _, _ in persist() }
         .onChange(of: uppercase) { _, _ in persist() }

@@ -5,7 +5,7 @@ struct HTMLEntityTool: Tool {
     let id = "html-entity"
     let name = "HTML Entity"
     let summary = "Encode and decode named and numeric HTML entities"
-    let symbol = "chevron.left.forwardslash.chevron.right"
+    let symbol = "lessthan"
     let category = ToolCategory.encoders
     func makeView() -> AnyView { AnyView(HTMLEntityToolView()) }
 }

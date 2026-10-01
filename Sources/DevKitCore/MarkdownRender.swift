@@ -9,12 +9,15 @@ public enum MarkdownRender {
         let page = """
         <!DOCTYPE html>
         <html><head><meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">
         <style>
+        html, body { background: #ffffff; color: #1d1d1f; }
         body { font: 16px -apple-system, sans-serif; padding: 24px; line-height: 1.45; }
-        pre, code { font-family: ui-monospace, monospace; }
-        pre { background: #f3f3f3; padding: 12px; overflow: auto; }
+        a { color: #5b35c5; }
+        pre, code { font-family: ui-monospace, monospace; color: #1d1d1f; }
+        pre { background: #f4f4f6; padding: 12px; overflow: auto; }
         table { border-collapse: collapse; }
-        td, th { border: 1px solid #ccc; padding: 4px 8px; }
+        td, th { border: 1px solid #d0d0d4; padding: 4px 8px; color: #1d1d1f; }
         </style></head><body>
         \(body)
         </body></html>

@@ -21,10 +21,13 @@ struct WhoisToolView: View {
                 TextField("Domain or IP", text: $query)
                 Button(busy ? "Querying…" : "Lookup") { lookup() }.disabled(busy)
             }
-            TextEditor(text: .constant(output))
-                .font(.system(.body, design: .monospaced))
+            CodePane(text: .constant(output), editable: false)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .copyOutput { output }
+        .onSample { query = "example.com" }
     }
 
     private func lookup() {

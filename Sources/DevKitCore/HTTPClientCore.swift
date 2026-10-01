@@ -44,6 +44,15 @@ public struct HTTPSpec: Equatable, Sendable {
 public struct HTTPReport: Equatable, Sendable {
     public var summary: String
     public var body: String
+    public var statusLine: String
+    public var responseHeaders: String
+
+    public init(summary: String, body: String, statusLine: String = "", responseHeaders: String = "") {
+        self.summary = summary
+        self.body = body
+        self.statusLine = statusLine
+        self.responseHeaders = responseHeaders
+    }
 }
 
 public enum HTTPClientCore {
@@ -73,14 +82,28 @@ public enum HTTPClientCore {
         if !extra.isEmpty {
             components.queryItems = (components.queryItems ?? []) + extra
         }
+        let scheme = components.scheme?.lowercased()
+        guard scheme == "http" || scheme == "https" else {
+            throw ToolIssue(message: "Only http and https URLs are allowed.")
+        }
         guard let url = components.url, let host = url.host, !host.isEmpty else {
             throw ToolIssue(message: "Enter a valid URL.")
         }
+        let method = spec.method.isEmpty ? "GET" : spec.method.uppercased()
+        let allowedMethods = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+        guard allowedMethods.contains(method) else {
+            throw ToolIssue(message: "That HTTP method is not allowed.")
+        }
         var request = URLRequest(url: url)
-        request.httpMethod = spec.method.isEmpty ? "GET" : spec.method.uppercased()
+        request.httpMethod = method
         request.timeoutInterval = max(1, min(spec.timeout, 300))
         for header in spec.headers where !header.name.isEmpty {
-            request.setValue(substitute(header.value, environment: spec.environment), forHTTPHeaderField: substitute(header.name, environment: spec.environment))
+            let name = substitute(header.name, environment: spec.environment)
+            let value = substitute(header.value, environment: spec.environment)
+            guard !name.isEmpty, headerField(name), headerField(value), !name.contains(":") else {
+                throw ToolIssue(message: "A header contains a line break or colon.")
+            }
+            request.setValue(value, forHTTPHeaderField: name)
         }
         switch spec.auth {
         case "basic":
@@ -111,8 +134,12 @@ public enum HTTPClientCore {
             let boundary = "DevKitBoundary\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
             var body = Data()
             for field in spec.form where !field.name.isEmpty {
+                let name = substitute(field.name, environment: spec.environment)
+                guard headerField(name), !name.contains("\"") else {
+                    throw ToolIssue(message: "A form field name contains a line break or quote.")
+                }
                 body.append(Data("--\(boundary)\r\n".utf8))
-                body.append(Data("Content-Disposition: form-data; name=\"\(substitute(field.name, environment: spec.environment))\"\r\n\r\n".utf8))
+                body.append(Data("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".utf8))
                 body.append(Data(substitute(field.value, environment: spec.environment).utf8))
                 body.append(Data("\r\n".utf8))
             }
@@ -146,16 +173,19 @@ public enum HTTPClientCore {
             let headerText = (http?.allHeaderFields ?? [:]).map { "\($0.key): \($0.value)" }.sorted().joined(separator: "\n")
             let cookies: String
             if let url = request.url {
-                cookies = HTTPCookieStorage.shared.cookies(for: url)?.map { "\($0.name)=\($0.value)" }.joined(separator: "\n") ?? ""
+                cookies = session.configuration.httpCookieStorage?.cookies(for: url)?.map { "\($0.name)=\($0.value)" }.joined(separator: "\n") ?? ""
             } else {
                 cookies = ""
             }
             let body = String(data: data, encoding: .utf8) ?? "Binary response, \(data.count) bytes."
-            let summary = """
+            let statusLine = """
             \(status) \(reason)
             Time: \(String(format: "%.0f", elapsed * 1000)) ms
             Size: \(data.count) bytes
             Final URL: \(http?.url?.absoluteString ?? request.url?.absoluteString ?? "")
+            """
+            let summary = """
+            \(statusLine)
 
             Headers:
             \(headerText)
@@ -163,7 +193,7 @@ public enum HTTPClientCore {
             Cookies:
             \(cookies.isEmpty ? "(none)" : cookies)
             """
-            return HTTPReport(summary: summary, body: body)
+            return HTTPReport(summary: summary, body: body, statusLine: statusLine, responseHeaders: headerText)
         } catch {
             return HTTPReport(summary: error.localizedDescription, body: "")
         }
@@ -190,7 +220,13 @@ public enum HTTPClientCore {
             expect("http body", false)
         }
         expect("http bad url", (try? build(HTTPSpec(url: "://"))) == nil)
+        expect("http file blocked", (try? build(HTTPSpec(url: "file:///etc/passwd"))) == nil)
+        expect("http header break", (try? build(HTTPSpec(url: "https://example.com", headers: [HTTPField(name: "X\nY", value: "1")]))) == nil)
         expect("http env", substitute("hi {{name}}", environment: ["name": "Ada"]) == "hi Ada")
+    }
+
+    private static func headerField(_ text: String) -> Bool {
+        !text.contains("\r") && !text.contains("\n") && !text.contains("\0")
     }
 
     private static func formEscape(_ text: String) -> String {
@@ -205,6 +241,11 @@ private final class RedirectGate: NSObject, URLSessionTaskDelegate, @unchecked S
     init(follow: Bool) { self.follow = follow }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-        completionHandler(follow ? request : nil)
+        let scheme = request.url?.scheme?.lowercased()
+        guard follow, scheme == "https" || scheme == "http" else {
+            completionHandler(nil)
+            return
+        }
+        completionHandler(request)
     }
 }

@@ -89,6 +89,7 @@ struct QRGeneratorToolView: View {
         }
         .padding(12)
         .onAppear { refresh() }
+        .onSample { kind = "text"; text = "https://example.com" }
         .onChange(of: payload) { _, _ in refresh() }
         .onChange(of: correction) { _, _ in refresh() }
         .onChange(of: scale) { _, _ in refresh() }
@@ -155,6 +156,7 @@ struct QRReaderToolView: View {
                 }
         }
         .padding(12)
+        .onSample { result = "Open an image of a QR code, or use Read Clipboard." }
     }
 
     private func open() {

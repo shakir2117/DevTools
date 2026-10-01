@@ -50,6 +50,7 @@ struct ColorToolView: View {
             text = model.loadOptionsObject(for: "color")["text"] as? String ?? "#336699"
             applyText()
         }
+        .onSample { text = "#336699" }
         .onChange(of: text) { _, _ in
             guard !updating else { return }
             applyText()

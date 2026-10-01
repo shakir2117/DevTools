@@ -5,7 +5,7 @@ struct UserAgentTool: Tool {
     let id = "user-agent"
     let name = "User Agent"
     let summary = "Generate a realistic user agent or parse one"
-    let symbol = "globe"
+    let symbol = "desktopcomputer"
     let category = ToolCategory.generators
     func makeView() -> AnyView { AnyView(UserAgentToolView()) }
 }

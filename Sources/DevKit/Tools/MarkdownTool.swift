@@ -13,6 +13,7 @@ struct MarkdownTool: Tool {
 }
 
 struct MarkdownToolView: View {
+    @EnvironmentObject private var model: AppModel
     @State private var source = "# Title\n\n| A | B |\n| - | - |\n| 1 | 2 |\n\n- [x] done\n\n```swift\nlet a = 1\n```\n"
     @State private var html = ""
     @State private var issue: ToolIssue?
@@ -25,16 +26,28 @@ struct MarkdownToolView: View {
                 Button("Export PDF") { exportPDF() }
                 Spacer()
             }
-            HStack {
-                TextEditor(text: $source)
-                    .font(.system(.body, design: .monospaced))
-                WebPreview(html: html, javaScript: false, width: 640)
+            FittedSplit {
+                CodePane(text: $source, errorLine: issue?.line)
+                    .frame(minWidth: 160, maxWidth: .infinity, maxHeight: .infinity)
+            } right: {
+                WebPreview(html: html, javaScript: false, width: 800)
+                    .frame(minWidth: 160, maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
             if let issue { Text(issue.display).foregroundStyle(.red) }
         }
         .padding(12)
-        .onAppear { render() }
-        .onChange(of: source) { _, _ in render() }
+        .onAppear {
+            if let saved = model.blob(for: "markdown").input { source = saved }
+            render()
+        }
+        .onSample { source = "# Title\n\n| A | B |\n| - | - |\n| 1 | 2 |\n\n- [x] done\n" }
+        .onChange(of: source) { _, newValue in
+            model.setInput(newValue, for: "markdown")
+            render()
+        }
+        .copyOutput { html.isEmpty ? source : html }
     }
 
     private func render() {
@@ -68,6 +81,11 @@ struct MarkdownToolView: View {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = name
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        try? data.write(to: url)
+        do {
+            try data.write(to: url)
+            model.flash("Saved")
+        } catch {
+            issue = ToolIssue(message: error.localizedDescription)
+        }
     }
 }

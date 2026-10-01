@@ -27,5 +27,6 @@ struct HTTPStatusToolView: View {
             }
         }
         .padding(12)
+        .onSample { query = "404" }
     }
 }

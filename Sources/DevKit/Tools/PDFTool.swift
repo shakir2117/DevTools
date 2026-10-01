@@ -12,6 +12,7 @@ struct PDFTool: Tool {
 }
 
 struct PDFToolView: View {
+    @EnvironmentObject private var model: AppModel
     @State private var source = "Hello from DevKit"
     @State private var mode = "text"
     @State private var page = "letter"
@@ -44,9 +45,8 @@ struct PDFToolView: View {
                 Button("Add Image…") { addImage() }
                 Spacer()
             }
-            TextEditor(text: $source)
-                .font(.system(.body, design: .monospaced))
-                .frame(minHeight: 160)
+            CodePane(text: $source)
+                .frame(minHeight: 180)
             HStack {
                 Button("Generate") { generate() }
                 Button("Merge PDFs…") { merge() }
@@ -59,6 +59,15 @@ struct PDFToolView: View {
             Text(status).foregroundStyle(.secondary)
         }
         .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onAppear {
+            if let saved = model.blob(for: "pdf").input { source = saved }
+        }
+        .onSample { source = "Hello from DevKit\n\nThis page is the sample." }
+        .onChange(of: source) { _, newValue in
+            model.setInput(newValue, for: "pdf")
+        }
+        .copyOutput { source }
     }
 
     private func generate() {
@@ -119,6 +128,7 @@ struct PDFToolView: View {
         do {
             try document.write(to: url)
             status = "Saved \(url.lastPathComponent)."
+            model.flash("Saved")
         } catch {
             status = error.localizedDescription
         }

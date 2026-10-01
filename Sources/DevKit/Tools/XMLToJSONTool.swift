@@ -5,7 +5,7 @@ struct XMLToJSONTool: Tool {
     let id = "xml-json"
     let name = "XML → JSON"
     let summary = "Map elements, attributes, text, and repeated tags"
-    let symbol = "arrow.right"
+    let symbol = "arrow.right.square"
     let category = ToolCategory.converters
     func makeView() -> AnyView { AnyView(XMLToJSONToolView()) }
 }

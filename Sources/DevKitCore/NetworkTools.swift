@@ -8,11 +8,14 @@ public enum DNSLookup {
     public static let types = ["A", "AAAA", "MX", "TXT", "CNAME", "NS", "SOA", "PTR", "SRV", "CAA"]
 
     public static func lookup(name: String, type: String, useDoH: Bool) -> ToolResult {
-        let host = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if host.isEmpty { return .failure("Enter a name to look up.") }
-        if host.count > 253 || host.contains("\n") || host.contains(" ") { return .failure("That is not a DNS name.") }
+        guard let host = HostCheck.hostname(name) else { return .failure("That is not a DNS name.") }
+        guard types.contains(type) else { return .failure("That record type is not supported.") }
         if useDoH { return doh(host, type: type) }
         return dig(host, type: type)
+    }
+
+    public static func runChecks(_ expect: (String, Bool) -> Void) {
+        expect("dns dash host", lookup(name: "-f", type: "A", useDoH: false).issue != nil)
     }
 
     private static func dig(_ name: String, type: String) -> ToolResult {
@@ -74,9 +77,7 @@ public enum DNSLookup {
 
 public enum WhoisClient {
     public static func lookup(_ query: String) async -> ToolResult {
-        let name = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if name.isEmpty { return .failure("Enter a domain or IP address.") }
-        if name.count > 253 || name.contains("\n") { return .failure("That query is not valid.") }
+        guard let name = HostCheck.hostname(query) else { return .failure("Enter a domain or IP address.") }
         let start = name.contains(":") || ipv4(name) ? "whois.arin.net" : "whois.iana.org"
         var server = start
         var raw = ""
@@ -108,7 +109,7 @@ public enum WhoisClient {
                 let value = line.split(separator: ":", maxSplits: 1).last.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
                 let host = value.replacingOccurrences(of: "whois://", with: "").replacingOccurrences(of: "rwhois://", with: "").split(separator: "/").first.map(String.init) ?? ""
                 let cleaned = host.split(separator: ":").first.map(String.init) ?? ""
-                if cleaned.contains(".") { return cleaned }
+                if HostCheck.hostname(cleaned) != nil { return cleaned }
             }
         }
         return nil
@@ -284,7 +285,7 @@ public enum IPLookup {
         let template = provider.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "https://ipwho.is/{ip}" : provider
         let target = trimmed.isEmpty || trimmed == "my ip" ? "" : trimmed
         let urlString = template.replacingOccurrences(of: "{ip}", with: target)
-        guard let url = URL(string: urlString) else { return ("The provider URL is not valid.", nil, nil) }
+        guard let url = URL(string: urlString), url.scheme == "https" else { return ("The provider must be an https URL.", nil, nil) }
         var request = URLRequest(url: url)
         request.timeoutInterval = 15
         do {
@@ -304,8 +305,7 @@ public enum IPLookup {
 
 public enum NetDiagnostics {
     public static func run(host: String, samples: Int) async -> String {
-        let name = host.trimmingCharacters(in: .whitespacesAndNewlines)
-        if name.isEmpty { return "Enter a host." }
+        guard let name = HostCheck.hostname(host) else { return "Enter a host name, not a command." }
         let count = min(10, max(1, samples))
         var lines: [String] = []
         lines.append(pathStatus())
@@ -443,6 +443,16 @@ public enum NetDiagnostics {
         }
         let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
         return output.isEmpty ? "ping returned no output." : output
+    }
+}
+
+enum HostCheck {
+    static func hostname(_ raw: String) -> String? {
+        let host = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if host.isEmpty || host.count > 253 || host.hasPrefix("-") || host.hasPrefix("@") { return nil }
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-:")
+        if host.unicodeScalars.contains(where: { !allowed.contains($0) }) { return nil }
+        return host
     }
 }
 

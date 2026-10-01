@@ -49,6 +49,14 @@ struct CronToolView: View {
             expression = model.loadOptionsObject(for: "cron")["expression"] as? String ?? expression
             evaluate()
         }
+        .onSample {
+            minute = "0"
+            hour = "9"
+            day = "*"
+            month = "*"
+            weekday = "1-5"
+            expression = "0 9 * * 1-5"
+        }
         .onChange(of: expression) { _, _ in
             evaluate()
             model.saveOptionsObject(["expression": expression], for: "cron")

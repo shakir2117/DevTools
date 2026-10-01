@@ -5,7 +5,7 @@ struct DNSTool: Tool {
     let id = "dns"
     let name = "DNS Lookup"
     let summary = "Query A through CAA with dig or DNS over HTTPS"
-    let symbol = "globe"
+    let symbol = "server.rack"
     let category = ToolCategory.networking
     func makeView() -> AnyView { AnyView(DNSToolView()) }
 }
@@ -32,10 +32,13 @@ struct DNSToolView: View {
                 .frame(width: 180)
                 Button(busy ? "Looking…" : "Lookup") { lookup() }.disabled(busy)
             }
-            TextEditor(text: .constant(output))
-                .font(.system(.body, design: .monospaced))
+            CodePane(text: .constant(output), editable: false)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .copyOutput { output }
+        .onSample { name = "example.com"; type = "A"; doh = false }
     }
 
     private func lookup() {

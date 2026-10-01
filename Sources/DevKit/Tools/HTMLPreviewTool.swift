@@ -10,6 +10,7 @@ struct HTMLPreviewTool: Tool {
 }
 
 struct HTMLPreviewToolView: View {
+    @EnvironmentObject private var model: AppModel
     @State private var html = "<!DOCTYPE html><html><body><h1>Hello</h1><p id=\"out\"></p><script>document.getElementById('out').textContent = 'JS on'</script></body></html>"
     @State private var javaScript = true
     @State private var width: CGFloat = 800
@@ -27,13 +28,24 @@ struct HTMLPreviewToolView: View {
                 .frame(maxWidth: 280)
                 Spacer()
             }
-            HStack {
-                TextEditor(text: $html)
-                    .font(.system(.body, design: .monospaced))
+            FittedSplit {
+                CodePane(text: $html)
+                    .frame(minWidth: 160, maxWidth: .infinity, maxHeight: .infinity)
+            } right: {
                 WebPreview(html: html, javaScript: javaScript, width: width)
-                    .frame(width: width)
+                    .frame(minWidth: 160, idealWidth: width, maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
         }
         .padding(12)
+        .onAppear {
+            if let saved = model.blob(for: "html-preview").input { html = saved }
+        }
+        .onSample { html = "<!DOCTYPE html><html><body><h1>Hello</h1><p>Sample page</p></body></html>" }
+        .onChange(of: html) { _, newValue in
+            model.setInput(newValue, for: "html-preview")
+        }
+        .copyOutput { html }
     }
 }

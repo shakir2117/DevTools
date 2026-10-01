@@ -5,7 +5,7 @@ struct URLEncoderTool: Tool {
     let id = "url-encoder"
     let name = "URL Encoder"
     let summary = "Percent-encode or decode a component or a full URL"
-    let symbol = "link"
+    let symbol = "percent"
     let category = ToolCategory.encoders
 
     func makeView() -> AnyView { AnyView(URLEncoderToolView()) }

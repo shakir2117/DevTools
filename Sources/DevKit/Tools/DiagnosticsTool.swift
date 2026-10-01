@@ -23,10 +23,13 @@ struct DiagnosticsToolView: View {
                 Stepper("Ping samples \(samples)", value: $samples, in: 1...10)
                 Button(busy ? "Running…" : "Run") { run() }.disabled(busy)
             }
-            TextEditor(text: .constant(output))
-                .font(.system(.body, design: .monospaced))
+            CodePane(text: .constant(output), editable: false)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .copyOutput { output }
+        .onSample { host = "example.com"; samples = 3 }
     }
 
     private func run() {

@@ -6,7 +6,7 @@ struct HashTool: Tool {
     let id = "hash"
     let name = "Hash"
     let summary = "MD5, SHA, HMAC, and bcrypt for text or a file"
-    let symbol = "number.square"
+    let symbol = "fingerprint"
     let category = ToolCategory.generators
     func makeView() -> AnyView { AnyView(HashToolView()) }
 }

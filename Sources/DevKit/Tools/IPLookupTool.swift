@@ -38,6 +38,7 @@ struct IPLookupToolView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(12)
+        .onSample { ip = "1.1.1.1" }
     }
 
     private func lookup() {

@@ -6,7 +6,7 @@ struct Base64Tool: Tool {
     let id = "base64"
     let name = "Base64"
     let summary = "Encode and decode text or files, standard or URL-safe"
-    let symbol = "number"
+    let symbol = "textformat.123"
     let category = ToolCategory.encoders
 
     func makeView() -> AnyView { AnyView(Base64ToolView()) }

@@ -31,6 +31,28 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .networking: return "network"
         }
     }
+
+    var tint: Color {
+        switch self {
+        case .formatters: return .blue
+        case .converters: return .orange
+        case .encoders: return .purple
+        case .inspection: return .teal
+        case .generators: return .pink
+        case .networking: return .green
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .formatters: return "Pretty-print code, markup, data, and queries."
+        case .converters: return "Turn one format into another."
+        case .encoders: return "Encode, decode, hash, and generate values."
+        case .inspection: return "Read, check, and explain data you already have."
+        case .generators: return "Build files, codes, and schedules."
+        case .networking: return "Call a host and inspect DNS, TLS, and HTTP."
+        }
+    }
 }
 
 protocol Tool: Identifiable where ID == String {
