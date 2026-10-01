@@ -31,6 +31,9 @@ enum ToolRegistry {
         MarkdownTool(),
         HTMLPreviewTool(),
         CronTool(),
+        QRGeneratorTool(),
+        QRReaderTool(),
+        PDFTool(),
     ]
 
     static func tool(id: String) -> (any Tool)? {

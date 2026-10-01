@@ -76,6 +76,8 @@ public enum SelfTest {
         URLParserChecks.runChecks(expect)
         Cron.runChecks(expect)
         MarkdownRender.runChecks(expect)
+        QRCode.runChecks(expect)
+        PDFBuilder.runChecks(expect)
 
         if failures.isEmpty {
             print("selftest ok (\(checks) checks)")
