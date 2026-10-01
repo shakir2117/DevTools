@@ -34,6 +34,15 @@ enum ToolRegistry {
         QRGeneratorTool(),
         QRReaderTool(),
         PDFTool(),
+        HTTPClientTool(),
+        CurlTool(),
+        HTTPStatusTool(),
+        WebSocketTool(),
+        DNSTool(),
+        WhoisTool(),
+        IPLookupTool(),
+        TLSTool(),
+        DiagnosticsTool(),
     ]
 
     static func tool(id: String) -> (any Tool)? {

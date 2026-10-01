@@ -78,6 +78,10 @@ public enum SelfTest {
         MarkdownRender.runChecks(expect)
         QRCode.runChecks(expect)
         PDFBuilder.runChecks(expect)
+        HTTPStatus.runChecks(expect)
+        CurlTranslate.runChecks(expect)
+        HTTPClientCore.runChecks(expect)
+        WhoisClient.runChecks(expect)
 
         if failures.isEmpty {
             print("selftest ok (\(checks) checks)")
