@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+DevKit.app
+*.xcuserdata
+.DS_Store
+node_modules/
+.prettier-vendor/

@@ -1,0 +1,13 @@
+---
+description: DevKit project rules
+alwaysApply: true
+---
+- Project: native macOS SwiftUI app "DevKit", arm64, macOS 14+, Swift Package (no Xcode, no .xcodeproj).
+- Build with `swift build -c release --arch arm64` or `./build.sh`. Fix all errors and warnings before finishing.
+- Edit files directly. Never reprint whole files. Reply in 3 lines or fewer.
+- No stubs, no TODOs. If something is impossible, say so in one line.
+- Every tool = one file in Sources/DevKit/Tools/ + one line in ToolRegistry.swift.
+- Pure logic lives in Sources/DevKitCore (no SwiftUI imports) so it is testable.
+- Heavy work runs off the main thread. Never force-unwrap external input.
+- Prefer Apple frameworks. Third-party only: Yams, swift-markdown, SwiftSoup.
+- Read @SPEC.md only when a batch needs it. Do not re-read unrelated files.
