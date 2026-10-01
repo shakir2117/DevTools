@@ -5,6 +5,14 @@ enum ToolRegistry {
         JSONFormatterTool(),
         Base64Tool(),
         URLEncoderTool(),
+        HTMLEntityTool(),
+        JWTTool(),
+        NumberBaseTool(),
+        TimestampTool(),
+        HashTool(),
+        IDGeneratorTool(),
+        PasswordTool(),
+        UserAgentTool(),
     ]
 
     static func tool(id: String) -> (any Tool)? {

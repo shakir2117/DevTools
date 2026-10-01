@@ -27,6 +27,7 @@ struct TextToolView<Options: View>: View {
     var runToken: String
     var canSwap: Bool
     var pushedOutput: String
+    var pushedInput: String
     var onSource: ((String) -> Void)?
     let transform: @Sendable (String) -> ToolResult
     @ViewBuilder var options: () -> Options
@@ -40,6 +41,7 @@ struct TextToolView<Options: View>: View {
     @State private var dropTargeted = false
     @State private var gate = RunGate()
     @State private var restored = false
+    @State private var pinOutput = false
 
     init(
         toolID: String,
@@ -47,6 +49,7 @@ struct TextToolView<Options: View>: View {
         runToken: String,
         canSwap: Bool = true,
         pushedOutput: String = "",
+        pushedInput: String = "",
         onSource: ((String) -> Void)? = nil,
         transform: @escaping @Sendable (String) -> ToolResult,
         @ViewBuilder options: @escaping () -> Options
@@ -56,6 +59,7 @@ struct TextToolView<Options: View>: View {
         self.runToken = runToken
         self.canSwap = canSwap
         self.pushedOutput = pushedOutput
+        self.pushedInput = pushedInput
         self.onSource = onSource
         self.transform = transform
         self.options = options
@@ -84,15 +88,27 @@ struct TextToolView<Options: View>: View {
         }
         .onAppear(perform: restore)
         .onChange(of: input) { _, newValue in
+            pinOutput = false
             guard largePayload == nil else { return }
             model.setInput(newValue, for: toolID)
             schedule()
         }
-        .onChange(of: runToken) { _, _ in schedule() }
+        .onChange(of: runToken) { _, _ in
+            pinOutput = false
+            schedule()
+        }
         .onChange(of: pushedOutput) { _, newValue in
             guard !newValue.isEmpty else { return }
+            pinOutput = true
             output = newValue
             issue = nil
+            running = false
+        }
+        .onChange(of: pushedInput) { _, newValue in
+            guard !newValue.isEmpty else { return }
+            largePayload = nil
+            largeNote = nil
+            if input != newValue { input = newValue }
         }
         .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
             loadDrop(providers)
@@ -199,6 +215,7 @@ struct TextToolView<Options: View>: View {
     }
 
     private func schedule() {
+        if pinOutput { return }
         let generation = gate.bump()
         let text = source
         let work = transform
@@ -231,6 +248,7 @@ struct TextToolView<Options: View>: View {
 
     private func clear() {
         _ = gate.bump()
+        pinOutput = false
         input = ""
         output = ""
         issue = nil

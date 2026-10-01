@@ -71,6 +71,22 @@ final class AppModel: ObservableObject {
         persistBlobs()
     }
 
+    func loadOptionsObject(for id: String) -> [String: Any] {
+        guard let raw = blob(for: id).options,
+              let data = raw.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return [:]
+        }
+        return object
+    }
+
+    func saveOptionsObject(_ object: [String: Any], for id: String) {
+        guard JSONSerialization.isValidJSONObject(object),
+              let data = try? JSONSerialization.data(withJSONObject: object),
+              let json = String(data: data, encoding: .utf8) else { return }
+        setOptions(json, for: id)
+    }
+
     func setOptions(_ json: String?, for id: String) {
         var blob = blobs[id] ?? ToolBlob()
         blob.options = json

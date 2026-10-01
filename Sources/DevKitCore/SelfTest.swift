@@ -52,6 +52,15 @@ public enum SelfTest {
         let malformed64 = Base64Codec.convert("!!!!", direction: .decode, alphabet: .standard)
         expect("base64 malformed", malformed64.issue != nil)
 
+        HTMLEntities.runChecks(expect)
+        Hashing.runChecks(expect)
+        IDGenerator.runChecks(expect)
+        NumberBase.runChecks(expect)
+        PasswordGenerator.runChecks(expect)
+        TimestampConvert.runChecks(expect)
+        UserAgentToolCore.runChecks(expect)
+        JWTCodec.runChecks(expect)
+
         if failures.isEmpty {
             print("selftest ok (\(checks) checks)")
             return 0
