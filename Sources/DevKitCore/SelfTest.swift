@@ -82,6 +82,9 @@ public enum SelfTest {
         CurlTranslate.runChecks(expect)
         HTTPClientCore.runChecks(expect)
         WhoisClient.runChecks(expect)
+        HTMLMarkup.runChecks(expect)
+        CodeMinify.runChecks(expect)
+        PrettierEngine.runChecks(expect)
 
         if failures.isEmpty {
             print("selftest ok (\(checks) checks)")

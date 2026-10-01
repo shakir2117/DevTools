@@ -4,6 +4,9 @@ import DevKitCore
 @main
 enum DevKitMain {
     static func main() {
+        if let standalone = Bundle.module.url(forResource: "standalone", withExtension: "js", subdirectory: "Resources/prettier") {
+            PrettierEngine.useScripts(at: standalone.deletingLastPathComponent())
+        }
         if CommandLine.arguments.contains("--selftest") {
             exit(SelfTest.run())
         }
