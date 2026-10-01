@@ -60,6 +60,16 @@ public enum SelfTest {
         TimestampConvert.runChecks(expect)
         UserAgentToolCore.runChecks(expect)
         JWTCodec.runChecks(expect)
+        XMLFormatter.runChecks(expect)
+        YAMLFormatter.runChecks(expect)
+        YAMLJSON.runChecks(expect)
+        CSVJSON.runChecks(expect)
+        XMLToJSON.runChecks(expect)
+        JSONToCSV.runChecks(expect)
+        ColorConvert.runChecks(expect)
+        UnitConvert.runChecks(expect)
+        FileSizeCalc.runChecks(expect)
+        DateConvert.runChecks(expect)
 
         if failures.isEmpty {
             print("selftest ok (\(checks) checks)")

@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ToolIssue: Equatable, Sendable {
+public struct ToolIssue: Equatable, Sendable, Error {
     public var message: String
     public var line: Int?
     public var column: Int?
