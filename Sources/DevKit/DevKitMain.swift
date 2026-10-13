@@ -4,14 +4,31 @@ import DevKitCore
 @main
 enum DevKitMain {
     static func main() {
-        if let standalone = Bundle.module.url(forResource: "standalone", withExtension: "js", subdirectory: "Resources/prettier") {
-            PrettierEngine.useScripts(at: standalone.deletingLastPathComponent())
+        if let scripts = prettierScripts() {
+            PrettierEngine.useScripts(at: scripts)
         }
         if CommandLine.arguments.contains("--selftest") {
             exit(SelfTest.run())
         }
         DevKitApp.main()
     }
+}
+
+private func prettierScripts() -> URL? {
+    let fileManager = FileManager.default
+    let bundle = Bundle.main
+    var candidates: [URL] = []
+    if let resources = bundle.resourceURL {
+        candidates.append(resources.appendingPathComponent("prettier"))
+    }
+    candidates.append(bundle.bundleURL.appendingPathComponent("DevKit_DevKit.bundle/Resources/prettier"))
+    candidates.append(bundle.bundleURL.appendingPathComponent("Contents/Resources/prettier"))
+    for candidate in candidates {
+        if fileManager.fileExists(atPath: candidate.appendingPathComponent("standalone.js").path) {
+            return candidate
+        }
+    }
+    return nil
 }
 
 struct DevKitApp: App {
